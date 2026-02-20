@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resultado Final - Mente Forte</title>
+<style>
+body{margin:0;font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;background:linear-gradient(135deg,#141e30,#243b55);color:white;display:flex;justify-content:center;align-items:center;height:100vh;perspective:1000px;padding:10px;}
+.container-central{text-align:center;padding:40px;background:rgba(0,0,0,0.5);border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,0.7);transform-style:preserve-3d;transition:transform 0.5s;animation:resultPopIn 0.8s ease-in-out;}
+.container-central:hover{transform:rotateY(10deg) rotateX(-5deg);}
+h2{font-size:2.5em;margin-bottom:20px;text-shadow:2px 2px 5px rgba(0,0,0,0.5);}
+p{font-size:1.2em;margin:10px 0;}
+.botao-principal{display:inline-block;padding:15px 30px;background:linear-gradient(135deg,#00ff88,#00c853);color:white;text-decoration:none;border-radius:10px;font-weight:bold;margin-top:20px;transition:transform 0.3s,box-shadow 0.3s;transform-style:preserve-3d;}
+.botao-principal:hover{transform:translateZ(20px) scale(1.05);box-shadow:0 5px 15px rgba(0,255,136,0.5);}
+@keyframes resultPopIn{from{transform:scale(0.8) rotateY(180deg);opacity:0;}to{transform:scale(1) rotateY(0);opacity:1;}}
+</style>
+</head>
+<body>
+<div class="container-central">
+<h2>Resultado Final</h2>
+<p>Jogador: <span id="resultado_nome">...</span></p>
+<p>Pontos Finais: <span id="resultado_pontos">0</span></p>
+<p>Nível Final: <span id="resultado_nivel">Iniciante</span></p>
+<a href="index.html" class="botao-principal">Jogar Novamente</a>
+</div>
+
+<script>
+function carregarResultado(){
+  document.getElementById("resultado_nome").innerText = localStorage.getItem("nome_jogador") || "Anônimo";
+  document.getElementById("resultado_pontos").innerText = localStorage.getItem("pontos_finais") || 0;
+  document.getElementById("resultado_nivel").innerText = localStorage.getItem("nivel_final") || "Iniciante";
+}
+carregarResultado();
+</script>
+</body>
+</html>

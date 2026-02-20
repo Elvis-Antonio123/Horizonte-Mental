@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mente Forte - Jogo</title>
+<style>
+body{margin:0;font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#141e30,#243b55);color:#fff;min-height:100vh;padding:10px;}
+.container-jogo{max-width:600px;margin:0 auto;padding:15px;}
+.painel-topo{background:rgba(0,0,0,0.7);padding:12px;border-radius:12px;margin-bottom:20px;font-size:13px;}
+.barra-progresso{background:rgba(255,255,255,0.15);height:12px;border-radius:12px;overflow:hidden;margin:20px 0;}
+#progresso{height:100%;width:0%;background:linear-gradient(to right,#00ff88,#00c853);transition:0.4s;}
+.cartao-pergunta{background:#1e2a3f;padding:25px 20px;border-radius:16px;box-shadow:0 8px 25px rgba(0,0,0,0.7);min-height:200px;}
+#texto_pergunta{font-size:1.2em;margin-bottom:20px;}
+#opcoes_resposta{display:flex;flex-direction:column;gap:12px;}
+.opcao{padding:14px;background:linear-gradient(135deg,#006633,#009944);border-radius:10px;cursor:pointer;text-align:center;font-weight:bold;transition:0.3s;}
+.opcao:hover{background:linear-gradient(135deg,#00b359,#00e676);}
+#mensagem_consequencia{margin-top:20px;min-height:60px;font-weight:bold;}
+@media(max-width:480px){.container-jogo{padding:10px;}.cartao-pergunta{padding:20px;}}
+</style>
+
+<audio id="som_acerto" src="acerto.mp3"></audio>
+<audio id="som_erro" src="erro.mp3"></audio>
+
+</head>
+<body>
+
+<div class="container-jogo">
+<div class="painel-topo">
+<p>Jogador: <span id="exibir_nome">Jogador</span></p>
+<p>Pontos: <span id="exibir_pontos">0</span></p>
+<p>Nível: <span id="exibir_nivel">Iniciante</span></p>
+<p>Vidas: <span id="exibir_vidas">❤️❤️❤️</span></p>
+</div>
+
+<div class="barra-progresso"><div id="progresso"></div></div>
+
+<div class="cartao-pergunta">
+<h2 id="texto_pergunta"></h2>
+<div id="opcoes_resposta"></div>
+<p id="mensagem_consequencia"></p>
+</div>
+</div>
+
+<!-- Áudio -->
+<audio id="som_acerto" src="acerto.mp3"></audio>
+<audio id="som_erro" src="erro.mp3"></audio>
+
+<script>
+/* ========================== VARIÁVEIS INICIAIS ========================== */
+const nomeJogador = localStorage.getItem("nome_jogador") || "Jogador";
+document.getElementById("exibir_nome").innerText = nomeJogador;
+
+let pontos = 0;
+let vidas = 3;
+let indice = 0;
+
+/* ========================== ARRAY DE 50 PERGUNTAS ========================== */
+const perguntas = [
+  {texto:"Numa festa oferecem álcool dizendo que todos estão bebendo.",
+   opcoes:[
+     {texto:"Aceito para me integrar",pontos:0,vida:-1,mensagem:"❌ Você perdeu uma vida. Pressão social não é liderança."},
+     {texto:"Recuso com confiança",pontos:20,vida:0,mensagem:"✅ Excelente autocontrolo!"},
+     {texto:"Mudo de ambiente",pontos:15,vida:0,mensagem:"✔️ Boa estratégia de proteção."}
+   ]},
+  {texto:"Um amigo oferece cigarro eletrônico no intervalo.",
+   opcoes:[
+     {texto:"Experimento por curiosidade",pontos:0,vida:-1,mensagem:"❌ A curiosidade pode virar dependência."},
+     {texto:"Recuso e explico meus objetivos",pontos:20,vida:0,mensagem:"🔥 Mentalidade forte!"},
+     {texto:"Ignoro e saio",pontos:10,vida:0,mensagem:"✔️ Você evitou risco."}
+   ]},
+  {texto:"Você vê alguém hackeando a conta de um colega.",
+   opcoes:[
+     {texto:"Participo também",pontos:0,vida:-1,mensagem:"❌ Crime digital."},
+     {texto:"Aviso a vítima",pontos:20,vida:0,mensagem:"✔️ Responsabilidade."},
+     {texto:"Ignoro",pontos:10,vida:0,mensagem:"⚠️ Poderia ajudar."}
+   ]},
+  {texto:"Amigos querem faltar aula para ir ao shopping.",
+   opcoes:[
+     {texto:"Vou também",pontos:0,vida:-1,mensagem:"❌ Pequenas escolhas afetam seu futuro."},
+     {texto:"Fico na aula",pontos:20,vida:0,mensagem:"📚 Disciplina constrói resultados."},
+     {texto:"Vou depois da aula",pontos:15,vida:0,mensagem:"✔️ Equilíbrio é importante."}
+   ]},
+  {texto:"Alguém oferece uma aposta online para ganhar dinheiro fácil.",
+   opcoes:[
+     {texto:"Aceito participar",pontos:0,vida:-1,mensagem:"❌ Risco financeiro elevado."},
+     {texto:"Recuso",pontos:20,vida:0,mensagem:"💰 Autocontrole financeiro."},
+     {texto:"Pesquiso antes",pontos:15,vida:0,mensagem:"✔️ Decisão racional."}
+   ]},
+  {texto:"Você encontra uma carteira na rua com dinheiro.",
+   opcoes:[
+     {texto:"Fico com tudo",pontos:0,vida:-1,mensagem:"❌ Apropriação indevida."},
+     {texto:"Entrego ao dono",pontos:25,vida:0,mensagem:"🔥 Honestidade exemplar."},
+     {texto:"Levo para autoridade",pontos:20,vida:0,mensagem:"✔️ Responsabilidade."}
+   ]},
+  {texto:"Um colega está sendo excluído do grupo.",
+   opcoes:[
+     {texto:"Finjo que não vejo",pontos:5,vida:0,mensagem:"⚠️ Indiferença também machuca."},
+     {texto:"Incluo ele no grupo",pontos:25,vida:0,mensagem:"🔥 Liderança positiva!"},
+     {texto:"Converso com ele depois",pontos:15,vida:0,mensagem:"✔️ Empatia conta muito."}
+   ]},
+  {texto:"Alguém pede sua senha de rede social.",
+   opcoes:[
+     {texto:"Forneço a senha",pontos:0,vida:-1,mensagem:"❌ Violação de privacidade."},
+     {texto:"Recuso educadamente",pontos:20,vida:0,mensagem:"🔐 Segurança digital."},
+     {texto:"Explico sobre privacidade",pontos:25,vida:0,mensagem:"🔥 Consciência digital."}
+   ]},
+  {texto:"Você está com muita raiva de alguém.",
+   opcoes:[
+     {texto:"Quebro algo",pontos:0,vida:-1,mensagem:"❌ Impulsividade prejudica."},
+     {texto:"Respiro e me acalmo",pontos:20,vida:0,mensagem:"🧘 Controle emocional."},
+     {texto:"Converso com alguém",pontos:25,vida:0,mensagem:"🔥 Inteligência emocional."}
+   ]},
+  {texto:"Alguém termina amizade com você injustamente.",
+   opcoes:[
+     {texto:"Busco vingança",pontos:0,vida:-1,mensagem:"❌ Vingança só piora."},
+     {texto:"Aceito e sigo em frente",pontos:20,vida:0,mensagem:"💪 Maturidade."},
+     {texto:"Invisto em autodesenvolvimento",pontos:25,vida:0,mensagem:"🔥 Crescimento pessoal."}
+   ]},
+  {texto:"Você encontra lixo na rua e ninguém recolhe.",
+   opcoes:[
+     {texto:"Ignoro",pontos:0,vida:-1,mensagem:"❌ Contribui para poluição."},
+     {texto:"Recolho e descarto corretamente",pontos:20,vida:0,mensagem:"🌱 Responsabilidade ambiental."},
+     {texto:"Recolho e ensino outros",pontos:25,vida:0,mensagem:"🔥 Exemplo positivo."}
+   ]},
+  {texto:"Um colega pede cola na prova.",
+   opcoes:[
+     {texto:"Dou cola",pontos:0,vida:-1,mensagem:"❌ Engana a si mesmo."},
+     {texto:"Recuso educadamente",pontos:20,vida:0,mensagem:"✔️ Integridade."},
+     {texto:"Sugiro estudar juntos",pontos:25,vida:0,mensagem:"🔥 Ajuda produtiva."}
+   ]},
+  {texto:"Um amigo te pressiona para jogar videogame até tarde.",
+   opcoes:[
+     {texto:"Aceito",pontos:0,vida:-1,mensagem:"❌ Sono prejudicado."},
+     {texto:"Recuso e durmo cedo",pontos:20,vida:0,mensagem:"🌙 Disciplina pessoal."},
+     {texto:"Combino tempo equilibrado",pontos:25,vida:0,mensagem:"✔️ Organização."}
+   ]},
+  {texto:"Você vê alguém jogando lixo no chão.",
+   opcoes:[
+     {texto:"Ignoro",pontos:0,vida:-1,mensagem:"❌ Falta de consciência ambiental."},
+     {texto:"Aviso a pessoa",pontos:20,vida:0,mensagem:"✔️ Cidadania ativa."},
+     {texto:"Recolho e ensino",pontos:25,vida:0,mensagem:"🔥 Exemplo positivo."}
+   ]},
+  {texto:"Alguém oferece drogas para melhorar desempenho.",
+   opcoes:[
+     {texto:"Aceito",pontos:0,vida:-1,mensagem:"❌ Risco para saúde."},
+     {texto:"Recuso com firmeza",pontos:25,vida:0,mensagem:"💪 Autocontrole."},
+     {texto:"Aconselho outros a recusar",pontos:20,vida:0,mensagem:"🔥 Consciência coletiva."}
+   ]},
+  {texto:"Um colega está triste sozinho.",
+   opcoes:[
+     {texto:"Ignoro",pontos:0,vida:-1,mensagem:"❌ Falta de empatia."},
+     {texto:"Convido para conversar",pontos:25,vida:0,mensagem:"💖 Apoio emocional."},
+     {texto:"Apenas escuto",pontos:20,vida:0,mensagem:"✔️ Atenção necessária."}
+   ]},
+  {texto:"Você recebe mensagem de ódio online.",
+   opcoes:[
+     {texto:"Reajo com xingamento",pontos:0,vida:-1,mensagem:"❌ Alimenta o conflito."},
+     {texto:"Bloqueio e reporto",pontos:25,vida:0,mensagem:"✔️ Inteligência digital."},
+     {texto:"Ignoro totalmente",pontos:20,vida:0,mensagem:"✔️ Mantém a calma."}
+   ]},
+  {texto:"Você encontra um animal perdido.",
+   opcoes:[
+     {texto:"Ignoro",pontos:0,vida:-1,mensagem:"❌ Falta de responsabilidade."},
+     {texto:"Levo a abrigo ou dono",pontos:25,vida:0,mensagem:"💖 Cuidado animal."},
+     {texto:"Alimento mas deixo",pontos:20,vida:0,mensagem:"✔️ Pequena ajuda."}
+   ]},
+  {texto:"Colega quer colar no trabalho em grupo.",
+   opcoes:[
+     {texto:"Faço por ele",pontos:0,vida:-1,mensagem:"❌ Não aprende nada."},
+     {texto:"Explico como fazer sozinho",pontos:25,vida:0,mensagem:"🔥 Ensinar é poder."},
+     {texto:"Ajudo parcialmente",pontos:20,vida:0,mensagem:"✔️ Equilíbrio."}
+   ]},
+  {texto:"Um amigo mente sobre algo sério.",
+   opcoes:[
+     {texto:"Minto também",pontos:0,vida:-1,mensagem:"❌ Mantém o ciclo de mentira."},
+     {texto:"Falo a verdade",pontos:25,vida:0,mensagem:"💪 Honestidade sempre."},
+     {texto:"Aguardo e vejo a situação",pontos:20,vida:0,mensagem:"✔️ Estratégia."}
+   ]},
+  {texto:"Você encontra alguém ferido no parque.",
+   opcoes:[
+     {texto:"Ignoro",pontos:0,vida:-1,mensagem:"❌ Falta de empatia."},
+     {texto:"Chamo ajuda imediatamente",pontos:25,vida:0,mensagem:"💖 Responsabilidade social."},
+     {texto:"Ajudo até a chegada do socorro",pontos:20,vida:0,mensagem:"✔️ Proatividade."}
+   ]},
+  // Continue com perguntas até 50, usando mesma lógica
+  {texto:"Numa festa oferecem álcool dizendo que todos estão bebendo.",
+   opcoes:[
+     {texto:"Aceito para me integrar",pontos:0,vida:-1,mensagem:"❌ Você perdeu uma vida. Pressão social não é liderança."},
+     {texto:"Recuso com confiança",pontos:20,vida:0,mensagem:"✅ Excelente autocontrolo!"},
+     {texto:"Mudo de ambiente",pontos:15,vida:0,mensagem:"✔️ Boa estratégia de proteção."}
+   ]},
+  {texto:"Um amigo oferece cigarro eletrônico no intervalo.",
+   opcoes:[
+     {texto:"Experimento por curiosidade",pontos:0,vida:-1,mensagem:"❌ A curiosidade pode virar dependência."},
+     {texto:"Recuso e explico meus objetivos",pontos:20,vida:0,mensagem:"🔥 Mentalidade forte!"},
+     {texto:"Ignoro e saio",pontos:10,vida:0,mensagem:"✔️ Você evitou risco."}
+   ]},
+  {texto:"Você vê alguém hackeando a conta de um colega.",
+   opcoes:[
+     {texto:"Participo também",pontos:0,vida:-1,mensagem:"❌ Crime digital."},
+     {texto:"Aviso a vítima",pontos:20,vida:0,mensagem:"✔️ Responsabilidade."},
+     {texto:"Ignoro",pontos:10,vida:0,mensagem:"⚠️ Poderia ajudar."}
+   ]},
+  {texto:"Amigos querem faltar aula para ir ao shopping.",
+   opcoes:[
+     {texto:"Vou também",pontos:0,vida:-1,mensagem:"❌ Pequenas escolhas afetam seu futuro."},
+     {texto:"Fico na aula",pontos:20,vida:0,mensagem:"📚 Disciplina constrói resultados."},
+     {texto:"Vou depois da aula",pontos:15,vida:0,mensagem:"✔️ Equilíbrio é importante."}
+   ]},
+  {texto:"Alguém oferece uma aposta online para ganhar dinheiro fácil.",
+   opcoes:[
+     {texto:"Aceito participar",pontos:0,vida:-1,mensagem:"❌ Risco financeiro elevado."},
+     {texto:"Recuso",pontos:20,vida:0,mensagem:"💰 Autocontrole financeiro."},
+     {texto:"Pesquiso antes",pontos:15,vida:0,mensagem:"✔️ Decisão racional."}
+   ]},
+  {texto:"Você encontra uma carteira na rua com dinheiro.",
+   opcoes:[
+     {texto:"Fico com tudo",pontos:0,vida:-1,mensagem:"❌ Apropriação indevida."},
+     {texto:"Entrego ao dono",pontos:25,vida:0,mensagem:"🔥 Honestidade exemplar."},
+     {texto:"Levo para autoridade",pontos:20,vida:0,mensagem:"✔️ Responsabilidade."}
+   ]},
+  {texto:"Um colega está sendo excluído do grupo.",
+   opcoes:[
+     {texto:"Finjo que não vejo",pontos:5,vida:0,mensagem:"⚠️ Indiferença também machuca."},
+     {texto:"Incluo ele no grupo",pontos:25,vida:0,mensagem:"🔥 Liderança positiva!"},
+     {texto:"Converso com ele depois",pontos:15,vida:0,mensagem:"✔️ Empatia conta muito."}
+   ]},
+  {texto:"Alguém pede sua senha de rede social.",
+   opcoes:[
+     {texto:"Forneço a senha",pontos:0,vida:-1,mensagem:"❌ Violação de privacidade."},
+     {texto:"Recuso educadamente",pontos:20,vida:0,mensagem:"🔐 Segurança digital."},
+     {texto:"Explico sobre privacidade",pontos:25,vida:0,mensagem:"🔥 Consciência digital."}
+   ]},
+  {texto:"Você está com muita raiva de alguém.",
+   opcoes:[
+     {texto:"Quebro algo",pontos:0,vida:-1,mensagem:"❌ Impulsividade prejudica."},
+     {texto:"Respiro e me acalmo",pontos:20,vida:0,mensagem:"🧘 Controle emocional."},
+     {texto:"Converso com alguém",pontos:25,vida:0,mensagem:"🔥 Inteligência emocional."}
+   ]},
+  {texto:"Amigos zombam porque você não bebe.",
+   opcoes:[
+     {texto:"Bebo para provar algo",pontos:0,vida:-1,mensagem:"❌ Você cedeu à pressão."},
+     {texto:"Riu e manteve decisão",pontos:20,vida:0,mensagem:"🔥 Confiança verdadeira."},
+     {texto:"Expliquei minha decisão",pontos:25,vida:0,mensagem:"✔️ Liderança de opinião."}
+   ]},
+  {texto:"Colegas usam remédio controlado para estudar.",
+   opcoes:[
+     {texto:"Peço um comprimido",pontos:0,vida:-1,mensagem:"❌ Uso indevido prejudica."},
+     {texto:"Estudo com disciplina",pontos:25,vida:0,mensagem:"🏆 Sucesso real vem do esforço."},
+     {texto:"Procuro alternativas naturais",pontos:15,vida:0,mensagem:"✔️ Boa escolha saudável."}
+   ]},
+  {texto:"Alguém oferece bebida antes de dirigir.",
+   opcoes:[
+     {texto:"Aceito",pontos:0,vida:-1,mensagem:"❌ Decisão extremamente perigosa."},
+     {texto:"Recuso imediatamente",pontos:25,vida:0,mensagem:"🚗 Responsabilidade salva vidas."},
+     {texto:"Sugiro chamar um táxi",pontos:20,vida:0,mensagem:"✔️ Solução inteligente."}
+   ]},
+  {texto:"Um amigo diz que maconha é inofensiva.",
+   opcoes:[
+     {texto:"Experimento para testar",pontos:0,vida:-1,mensagem:"❌ Substâncias afetam seu desenvolvimento."},
+     {texto:"Pesquiso antes de decidir",pontos:15,vida:0,mensagem:"✔️ Informação é poder."},
+     {texto:"Recuso firmemente",pontos:20,vida:0,mensagem:"✅ Autodisciplina."}
+   ]},
+  {texto:"Você encontra lixo no chão da escola.",
+   opcoes:[
+     {texto:"Ignoro",pontos:0,vida:-1,mensagem:"❌ Falta de consciência ambiental."},
+     {texto:"Recolho e jogo no lixo",pontos:25,vida:0,mensagem:"🌱 Exemplo positivo."},
+     {texto:"Recolho e ensino colegas",pontos:20,vida:0,mensagem:"🔥 Liderança ambiental."}
+   ]},
+  {texto:"Alguém oferece um desafio perigoso no parque.",
+   opcoes:[
+     {texto:"Aceito por diversão",pontos:0,vida:-1,mensagem:"❌ Risco desnecessário."},
+     {texto:"Recuso e alerto outros",pontos:25,vida:0,mensagem:"🔥 Mente responsável."},
+     {texto:"Observa de longe",pontos:15,vida:0,mensagem:"✔️ Segurança acima de tudo."}
+   ]},
+  {texto:"Você encontra um animal ferido.",
+   opcoes:[
+     {texto:"Ignoro",pontos:0,vida:-1,mensagem:"❌ Falta de empatia."},
+     {texto:"Chamo ajuda imediatamente",pontos:25,vida:0,mensagem:"💖 Responsabilidade social."},
+     {texto:"Ajudou até socorro chegar",pontos:20,vida:0,mensagem:"✔️ Proatividade."}
+   ]},
+  {texto:"Colega pede cola na prova.",
+   opcoes:[
+     {texto:"Dou cola",pontos:0,vida:-1,mensagem:"❌ Engana a si mesmo."},
+     {texto:"Recuso educadamente",pontos:20,vida:0,mensagem:"✔️ Integridade."},
+     {texto:"Sugiro estudar juntos",pontos:25,vida:0,mensagem:"🔥 Ajuda produtiva."}
+   ]},
+  {texto:"Você recebe mensagem de ódio online.",
+   opcoes:[
+     {texto:"Reajo com xingamento",pontos:0,vida:-1,mensagem:"❌ Alimenta o conflito."},
+     {texto:"Bloqueio e reporto",pontos:25,vida:0,mensagem:"✔️ Inteligência digital."},
+     {texto:"Ignoro totalmente",pontos:20,vida:0,mensagem:"✔️ Mantém a calma."}
+   ]},
+  {texto:"Alguém quer que você participe de jogo de azar.",
+   opcoes:[
+     {texto:"Aceito jogar",pontos:0,vida:-1,mensagem:"❌ Risco financeiro e emocional."},
+     {texto:"Recuso educadamente",pontos:25,vida:0,mensagem:"💰 Autocontrole exemplar."},
+     {texto:"Explico riscos",pontos:20,vida:0,mensagem:"✔️ Liderança responsável."}
+   ]},
+  {texto:"Você tem chance de trapacear num jogo online.",
+   opcoes:[
+     {texto:"Trapaceio",pontos:0,vida:-1,mensagem:"❌ Perde credibilidade."},
+     {texto:"Jogo limpo",pontos:25,vida:0,mensagem:"✔️ Ética digital."},
+     {texto:"Aviso outros sobre regras",pontos:20,vida:0,mensagem:"🔥 Exemplo positivo."}
+   ]},
+  {texto:"Amigos zombam de alguém novo na escola.",
+   opcoes:[
+     {texto:"Participo da zoação",pontos:0,vida:-1,mensagem:"❌ Bullying prejudica todos."},
+     {texto:"Defendo o colega",pontos:25,vida:0,mensagem:"🔥 Coragem e empatia."},
+     {texto:"Alerto professores discretamente",pontos:20,vida:0,mensagem:"✔️ Estratégia responsável."}
+   ]},
+  {texto:"Você recebe dinheiro extra sem merecer.",
+   opcoes:[
+     {texto:"Fico com tudo",pontos:0,vida:-1,mensagem:"❌ Ética comprometida."},
+     {texto:"Devolvo",pontos:25,vida:0,mensagem:"🔥 Honestidade sempre."},
+     {texto:"Pergunto ao responsável",pontos:20,vida:0,mensagem:"✔️ Decisão segura."}
+   ]},
+  {texto:"Alguém tenta espalhar boatos.",
+   opcoes:[
+     {texto:"Participo",pontos:0,vida:-1,mensagem:"❌ Pode destruir reputações."},
+     {texto:"Não participo e alerto a vítima",pontos:25,vida:0,mensagem:"✔️ Integridade social."},
+     {texto:"Ignoro",pontos:15,vida:0,mensagem:"⚠️ Nem sempre suficiente."}
+   ]},
+  {texto:"Você vê colegas jogando lixo no rio.",
+   opcoes:[
+     {texto:"Ignoro",pontos:0,vida:-1,mensagem:"❌ Contribui para poluição."},
+     {texto:"Tento impedir",pontos:25,vida:0,mensagem:"🌊 Responsabilidade ambiental."},
+     {texto:"Recolho e ensino outros",pontos:20,vida:0,mensagem:"🔥 Educação ambiental."}
+   ]},
+  {texto:"Um colega está triste sozinho.",
+   opcoes:[
+     {texto:"Ignoro",pontos:0,vida:-1,mensagem:"❌ Falta de empatia."},
+     {texto:"Convido para conversar",pontos:25,vida:0,mensagem:"💖 Apoio emocional."},
+     {texto:"Apenas escuto",pontos:20,vida:0,mensagem:"✔️ Atenção necessária."}
+   ]},
+  {texto:"Você encontra oportunidade de enganar alguém.",
+   opcoes:[
+     {texto:"Aproveito",pontos:0,vida:-1,mensagem:"❌ Integridade perdida."},
+     {texto:"Recuso e alerto",pontos:25,vida:0,mensagem:"🔥 Honestidade vale ouro."},
+     {texto:"Ignoro e sigo",pontos:20,vida:0,mensagem:"✔️ Decisão segura."}
+   ]},
+  {texto:"Amigos querem fazer desafios perigosos de vídeo online.",
+   opcoes:[
+     {texto:"Participo",pontos:0,vida:-1,mensagem:"❌ Pode se machucar."},
+     {texto:"Recuso e alerto",pontos:25,vida:0,mensagem:"🔥 Responsabilidade digital."},
+     {texto:"Sugiro algo seguro",pontos:20,vida:0,mensagem:"✔️ Criatividade segura."}
+   ]},
+  {texto:"Você tem oportunidade de ajudar um idoso a atravessar a rua.",
+   opcoes:[
+     {texto:"Ignoro",pontos:0,vida:-1,mensagem:"❌ Falta de gentileza."},
+     {texto:"Ajudar imediatamente",pontos:25,vida:0,mensagem:"💖 Solidariedade."},
+     {texto:"Peço ajuda de outro colega",pontos:20,vida:0,mensagem:"✔️ Trabalho em equipe."}
+   ]},
+  {texto:"Colega pede para copiar sua lição de casa.",
+   opcoes:[
+     {texto:"Dou a lição completa",pontos:0,vida:-1,mensagem:"❌ Impede aprendizado."},
+     {texto:"Ajudo explicando",pontos:25,vida:0,mensagem:"🔥 Ajuda produtiva."},
+     {texto:"Recuso",pontos:20,vida:0,mensagem:"✔️ Mantém integridade."}
+   ]},
+  {texto:"Você encontra um e-mail suspeito pedindo dados.",
+   opcoes:[
+     {texto:"Forneço informações",pontos:0,vida:-1,mensagem:"❌ Risco de fraude."},
+     {texto:"Bloqueio e reporto",pontos:25,vida:0,mensagem:"🔒 Segurança digital."},
+     {texto:"Pergunto para especialista",pontos:20,vida:0,mensagem:"✔️ Decisão prudente."}
+   ]},
+  {texto:"Amigos querem jogar videogame por 8h seguidas.",
+   opcoes:[
+     {texto:"Aceito sem limites",pontos:0,vida:-1,mensagem:"❌ Saúde prejudicada."},
+     {texto:"Estabeleço limites",pontos:25,vida:0,mensagem:"✔️ Autodisciplina."},
+     {texto:"Não jogo",pontos:20,vida:0,mensagem:"✔️ Prioriza outras atividades."}
+   ]},
+  {texto:"Alguém tenta difamar você online.",
+   opcoes:[
+     {texto:"Respondo agressivamente",pontos:0,vida:-1,mensagem:"❌ Agrava o conflito."},
+     {texto:"Bloqueio e reporto",pontos:25,vida:0,mensagem:"✔️ Inteligência digital."},
+     {texto:"Ignoro",pontos:20,vida:0,mensagem:"✔️ Mantém a calma."}
+   ]},
+  {texto:"Você encontra um colega ferido durante esporte.",
+   opcoes:[
+     {texto:"Ignoro",pontos:0,vida:-1,mensagem:"❌ Falta de empatia."},
+     {texto:"Auxilio imediatamente",pontos:25,vida:0,mensagem:"💖 Responsabilidade social."},
+     {texto:"Chamo ajuda",pontos:20,vida:0,mensagem:"✔️ Segurança em primeiro lugar."}
+   ]},
+  {texto:"Alguém quer que você quebre regra para vantagem pessoal.",
+   opcoes:[
+     {texto:"Aceito",pontos:0,vida:-1,mensagem:"❌ Perde credibilidade."},
+     {texto:"Recuso",pontos:25,vida:0,mensagem:"🔥 Ética acima de tudo."},
+     {texto:"Sugiro solução justa",pontos:20,vida:0,mensagem:"✔️ Liderança responsável."}
+   ]},
+  {texto:"Você encontra lixo eletrônico na rua.",
+   opcoes:[
+     {texto:"Ignoro",pontos:0,vida:-1,mensagem:"❌ Poluição crescente."},
+     {texto:"Levo a ponto de coleta",pontos:25,vida:0,mensagem:"♻️ Cidadania ambiental."},
+     {texto:"Educo colegas sobre descarte",pontos:20,vida:0,mensagem:"🔥 Liderança positiva."}
+   ]},
+  {texto:"Alguém oferece drogas para melhorar nota.",
+   opcoes:[
+     {texto:"Aceito",pontos:0,vida:-1,mensagem:"❌ Risco à saúde e integridade."},
+     {texto:"Recuso e estudo",pontos:25,vida:0,mensagem:"💪 Esforço vale mais."},
+     {texto:"Aviso colegas do risco",pontos:20,vida:0,mensagem:"🔥 Proteção coletiva."}
+   ]},
+  {texto:"Colega espalha rumores sobre outro.",
+   opcoes:[
+     {texto:"Participo",pontos:0,vida:-1,mensagem:"❌ Alimenta bullying."},
+     {texto:"Recuso e apoio a vítima",pontos:25,vida:0,mensagem:"💖 Empatia em ação."},
+     {texto:"Alerto professores",pontos:20,vida:0,mensagem:"✔️ Responsabilidade."}
+   ]},
+  {texto:"Você encontra oportunidade de fazer trapaça em jogo.",
+   opcoes:[
+     {texto:"Trapaceio",pontos:0,vida:-1,mensagem:"❌ Integridade perdida."},
+     {texto:"Jogo limpo",pontos:25,vida:0,mensagem:"🔥 Ética digital."},
+     {texto:"Explico regras corretas",pontos:20,vida:0,mensagem:"✔️ Liderança educativa."}
+   ]},
+];
+
+/* ========================== FUNÇÕES ========================== */
+function atualizarPainel() {
+  document.getElementById("exibir_pontos").innerText = pontos;
+  document.getElementById("exibir_vidas").innerText = "❤️".repeat(vidas);
+  document.getElementById("progresso").style.width = (indice / perguntas.length * 100) + "%";
+}
+
+function carregarPergunta() {
+  if (vidas <= 0) {
+    document.getElementById("texto_pergunta").innerText = "💀 Game Over!";
+    document.getElementById("opcoes_resposta").innerHTML = "";
+    finalizarJogo();
+    return;
+  }
+  if (indice >= perguntas.length) {
+    document.getElementById("texto_pergunta").innerText = "🎉 Você concluiu o desafio Mente Forte!";
+    document.getElementById("opcoes_resposta").innerHTML = "";
+    finalizarJogo();
+    return;
+  }
+
+  const p = perguntas[indice];
+  document.getElementById("texto_pergunta").innerText = p.texto;
+  document.getElementById("opcoes_resposta").innerHTML = "";
+
+  p.opcoes.forEach(op => {
+    const btn = document.createElement("div");
+    btn.className = "opcao";
+    btn.innerText = op.texto;
+    btn.onclick = () => {
+      pontos += op.pontos;
+      vidas += op.vida;
+      if (vidas < 0) vidas = 0;
+      document.getElementById("mensagem_consequencia").innerText = op.mensagem;
+
+      if(op.pontos>0) document.getElementById("som_acerto").play();
+      else document.getElementById("som_erro").play();
+
+      indice++;
+      atualizarPainel();
+
+      setTimeout(() => {
+        document.getElementById("mensagem_consequencia").innerText = "";
+        carregarPergunta();
+      }, 1500);
+    };
+    document.getElementById("opcoes_resposta").appendChild(btn);
+  });
+  atualizarPainel();
+}
+
+function finalizarJogo() {
+  let nivel = "Iniciante";
+  if (pontos >= 500) nivel = "Expert";
+  else if (pontos >= 300) nivel = "Avançado";
+  else if (pontos >= 150) nivel = "Intermediário";
+
+  localStorage.setItem("pontos_finais", pontos);
+  localStorage.setItem("nivel_final", nivel);
+
+  setTimeout(()=>{window.location.href="resultado.html";},2000);
+}
+
+/* ========================== INÍCIO DO JOGO ========================== */
+carregarPergunta();
+</script>
+
+</body>
+</html>
